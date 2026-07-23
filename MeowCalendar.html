@@ -340,7 +340,7 @@ function render(){
       + '<div style="position:absolute;top:4px;right:8px;opacity:0.35;transform:rotate(8deg);">'+icon('spiral',14,'#C17B4F')+'</div>'
       + items + '</div>';
   } else {
-    playgroundHTML = '<div class="card" style="margin:10px 14px 4px;padding:14px;text-align:center;font-size:11px;color:#8A7F78;">還沒有貼紙可以在這裡玩耍，快去拍第一張吧！</div>';
+    playgroundHTML = '<div class="card" style="margin:10px 14px 4px;padding:14px;text-align:center;font-size:11px;color:#8A7F78;">未有喵在這裡玩耍，快去拍第一張！</div>';
   }
 
   app.innerHTML = `
@@ -464,7 +464,7 @@ function openSourcePicker(key){
       <div>${icon('gift',26,'#C17B4F')}</div>
       <div style="font-size:13px;color:#4A3E3D;margin-top:6px;">給我喵</div>
     </div>
-    <p style="font-size:11px;color:#8A7F78;text-align:center;margin-top:16px;">瀏覽器環境用「選取檔案」模擬拍照/相簿，正式 App 會是真的相機 + AI 去背</p>
+    <p style="font-size:11px;color:#8A7F78;text-align:center;margin-top:16px;">拍照/選相簿後會用瀏覽器內建 AI 自動去背，第一次使用需下載模型稍等幾秒；效果可能不如正式 App 精細</p>
   `;
   el.classList.add('show');
 }
@@ -474,13 +474,134 @@ function onFileChosen(evt, source){
   const file = evt.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
-    pendingImage = reader.result;
+  reader.onload = async () => {
+    const rawDataUrl = reader.result;
     pendingSource = source;
     closeOverlay('sourceOverlay');
+    showBgLoading('AI 去背處理中…');
+    try {
+      pendingImage = await removeBackgroundAI(rawDataUrl);
+    } catch(e) {
+      console.error('AI 去背失敗，改用原圖', e);
+      pendingImage = rawDataUrl;
+    }
+    hideBgLoading();
     openEditor();
   };
   reader.readAsDataURL(file);
+}
+
+// ---------------- AI 去背（純前端，TensorFlow.js DeepLab，PASCAL VOC 類別內建「貓」）----------------
+let deeplabModelPromise = null;
+function loadScriptOnce(src){
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[src="'+src+'"]');
+    if(existing){ existing.addEventListener('load', resolve); if(existing.dataset.loaded) resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => { s.dataset.loaded = '1'; resolve(); };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+async function getDeeplabModel(){
+  if(!deeplabModelPromise){
+    deeplabModelPromise = (async () => {
+      await loadScriptOnce('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js');
+      await loadScriptOnce('https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab@0.2.1/dist/deeplab.min.js');
+      return await window.deeplab.load({base: 'pascal', quantizationBytes: 2});
+    })();
+  }
+  return deeplabModelPromise;
+}
+function loadImageEl(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+async function removeBackgroundAI(dataUrl){
+  const model = await getDeeplabModel();
+  const imgEl = await loadImageEl(dataUrl);
+  const { legend, segmentationMap, width, height } = await model.segment(imgEl);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(imgEl, 0, 0, width, height);
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+
+  const matches = (i, color, tol) => Math.abs(segmentationMap[i]-color[0])<=tol && Math.abs(segmentationMap[i+1]-color[1])<=tol && Math.abs(segmentationMap[i+2]-color[2])<=tol;
+  const subjectColor = legend['cat'] || legend['dog'];
+
+  // 主體遮罩：1 = 貓咪本體
+  const mask = new Uint8Array(width*height);
+  if(subjectColor){
+    for(let p=0, i=0; i<segmentationMap.length; i+=4, p++){
+      mask[p] = matches(i, subjectColor, 12) ? 1 : 0;
+    }
+  } else {
+    const bgColor = legend['background'];
+    for(let p=0, i=0; i<segmentationMap.length; i+=4, p++){
+      mask[p] = (bgColor && matches(i, bgColor, 12)) ? 0 : 1;
+    }
+  }
+
+  // 向外擴張出一圈白邊，模擬真正印刷貼紙的刀模白邊感
+  const outlineMask = dilateMask(mask, width, height, 7);
+
+  for(let p=0, i=0; p<mask.length; p++, i+=4){
+    if(mask[p]){
+      data[i+3] = 255;
+    } else if(outlineMask[p]){
+      data[i] = 255; data[i+1] = 255; data[i+2] = 255; data[i+3] = 255;
+    } else {
+      data[i+3] = 0;
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+function dilateMask(mask, width, height, radius){
+  let current = mask;
+  for(let r=0; r<radius; r++){
+    const next = new Uint8Array(current.length);
+    for(let y=0; y<height; y++){
+      for(let x=0; x<width; x++){
+        const idx = y*width+x;
+        if(current[idx]){ next[idx]=1; continue; }
+        let found = 0;
+        for(let dy=-1; dy<=1 && !found; dy++){
+          for(let dx=-1; dx<=1 && !found; dx++){
+            if(dx===0 && dy===0) continue;
+            const nx=x+dx, ny=y+dy;
+            if(nx>=0 && nx<width && ny>=0 && ny<height && current[ny*width+nx]) found=1;
+          }
+        }
+        next[idx]=found;
+      }
+    }
+    current = next;
+  }
+  return current;
+}
+function showBgLoading(msg){
+  let el = document.getElementById('bgLoadingIndicator');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'bgLoadingIndicator';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(253,251,247,0.94);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<div style="font-family:\'Gochi Hand\',cursive;font-size:22px;color:#C17B4F;">'+msg+'</div><div style="font-size:11px;color:#8A7F78;">第一次使用需要下載 AI 模型，請稍等幾秒</div>';
+  el.style.display = 'flex';
+}
+function hideBgLoading(){
+  const el = document.getElementById('bgLoadingIndicator');
+  if(el) el.style.display = 'none';
 }
 
 // ---------------- 貼紙庫 ----------------
@@ -518,7 +639,7 @@ function confirmPreset(){
   openTagStep();
 }
 
-// ---------------- 去背中繼頁（瀏覽器版：套用貼紙白邊框效果） ----------------
+// ---------------- 貼紙編輯頁（照片已在選取後即時 AI 去背，這裡只做位置/大小/角度調整） ----------------
 function openEditor(){
   editState = {scale:1, rot:0, ox:0, oy:0};
   const el = document.getElementById('editorOverlay');
@@ -527,7 +648,7 @@ function openEditor(){
     <div style="display:flex;justify-content:flex-end;"><button class="icon-btn" onclick="closeOverlay('editorOverlay')">${icon('close',16)}</button></div>
     <p style="text-align:center;font-size:14px;color:#8A7F78;margin:4px 0 16px;">拖曳貼紙調整位置，用下方滑桿調整大小/角度</p>
     <div id="editorStage" style="position:relative;height:220px;display:flex;align-items:center;justify-content:center;touch-action:none;">
-      <img id="editorImg" src="${pendingImage}" style="width:160px;height:160px;object-fit:contain;border-radius:10px;box-shadow:0 4px 10px rgba(193,123,79,0.35);border:5px solid white;cursor:grab;" />
+      <img id="editorImg" src="${pendingImage}" style="width:160px;height:160px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(193,123,79,0.4));cursor:grab;" />
     </div>
     <div style="padding:0 12px;">
       <label style="font-size:12px;color:#8A7F78;">大小</label>
@@ -536,7 +657,7 @@ function openEditor(){
       <input type="range" min="-45" max="45" step="1" value="0" oninput="updateEdit('rot', this.value)">
     </div>
     <button class="primary-btn" style="margin-top:14px;" onclick="confirmEditor()">下一步：打卡標籤</button>
-    <p style="font-size:11px;color:#8A7F78;text-align:center;margin-top:10px;">瀏覽器版用白邊框模擬貼紙效果；正式 App 會用 Vision 框架做真的 AI 去背</p>
+    <p style="font-size:11px;color:#8A7F78;text-align:center;margin-top:10px;">已用瀏覽器 AI 自動去背，如果邊緣不夠乾淨，正式 App 會用手機的 Vision 框架做得更精細</p>
   `;
   applyEditTransform();
   const img = document.getElementById('editorImg');
@@ -567,7 +688,7 @@ function openTagStep(){
     ? '<p style="font-size:12px;color:#8A7F78;margin:0 0 8px;">這是哪隻喵？（可不選）</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">'
       + catProfiles.map(c=>'<div class="chip" id="draftcat-'+c.id+'" onclick="selectDraftCat(\''+c.id+'\')" style="border-color:'+c.color+'80;"><span style="width:8px;height:8px;border-radius:50%;background:'+c.color+';display:inline-block;"></span>'+c.name+'</div>').join('')
       + '</div>'
-    : '<p style="font-size:11px;color:#8A7F78;margin:0 0 12px;">還沒有貓咪檔案，可以先在「'+icon('gear',10,'#8A7F78')+' 管理一下喵」新增。</p>';
+    : '<p style="font-size:11px;color:#8A7F78;margin:0 0 12px;">還沒有喵檔案，可以先在「'+icon('gear',10,'#8A7F78')+' 管理一下喵」新增。</p>';
   el.innerHTML = `
     ${overlayTapeHTML()}
     <div style="display:flex;justify-content:flex-end;"><button class="icon-btn" onclick="closeOverlay('tagOverlay')">${icon('close',16)}</button></div>
@@ -621,7 +742,7 @@ function renderCatManager(el){
           </div>
           <button class="icon-btn" onclick="removeCat('${c.id}')">${icon('trash',16)}</button>
         </div>
-      `).join('') || '<p style="font-size:12px;color:#8A7F78;text-align:center;">還沒有貓咪檔案</p>'}
+      `).join('') || '<p style="font-size:12px;color:#8A7F78;text-align:center;">還沒有喵檔案</p>'}
     </div>
     <div class="card" style="padding:14px;">
       <p style="font-size:12px;color:#8A7F78;margin:0 0 8px;">新增一隻喵</p>
@@ -870,12 +991,12 @@ function drawTape(ctx, cx, cy, w, h, angleDeg, color){
 這是「貓咪月歷 App」的瀏覽器可測試版本，方便你在沒有 Xcode 的情況下也能點來點去試整條流程。
 
 跟正式 iOS App 的落差（設計上刻意簡化，之後在 Xcode 裡都是完整版）：
-1. 拍照/相簿都用瀏覽器的「選取檔案」模擬，手機瀏覽器點「現場拍照」通常會直接叫出相機。
-2. 沒有真的 AI 去背（Vision 框架只有原生 App 才有），這裡用白色邊框模擬「貼紙感」。
+1. 拍照/相簿都用瀏覽器的「選取檔案」，手機瀏覽器點「拍喵」通常會直接叫出相機。
+2. 已經有真的 AI 去背（TensorFlow.js + DeepLab，瀏覽器端執行，第一次使用會下載模型），但這是通用物件辨識模型不是專門訓練給貓咪用的，邊緣精細度會不如正式 App 用 Vision 框架做的效果。
 3. 手勢調整用「拖曳 + 滑桿」，不是真的雙指縮放/旋轉手勢，但效果一致。
-4. 10 款內建貼紙目前是簡化 SVG 佔位圖，之後正式插畫可以直接換掉 PRESET_STICKERS 裡對應的 svg 內容。
+4. 12 款內建貼紙是真實水彩插畫（已去背成透明背景 PNG），存在 PRESET_STICKERS 陣列裡，要換圖直接改對應項目的 img 內容。
 5. 資料存在這個瀏覽器的 localStorage 裡（跟裝置/瀏覽器綁定，不是雲端），換一台手機或清瀏覽器資料就會消失，正式 App 會改成真正的資料庫。
-6. 狀態打卡標籤目前選了「已餵藥/便便正常/剪爪爪/刷牙」四項作為預設，如果你想要別的項目，改 STATUS_TAGS 陣列就好。
+6. 狀態打卡標籤目前選了「刷牙/剪甲/餵藥/杜蟲/獎勵/便便/洗澡/換砂」八項作為預設，如果你想要別的項目，改 STATUS_TAGS 陣列就好。
 -->
 </body>
 </html>
