@@ -96,6 +96,35 @@
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <clipPath id="clip-circle" clipPathUnits="objectBoundingBox"><circle cx="0.5" cy="0.5" r="0.47"/></clipPath>
+    <clipPath id="clip-roundedSquare" clipPathUnits="objectBoundingBox"><path d="M0.26,0.06 H0.74 A0.2,0.2 0 0 1 0.94,0.26 V0.74 A0.2,0.2 0 0 1 0.74,0.94 H0.26 A0.2,0.2 0 0 1 0.06,0.74 V0.26 A0.2,0.2 0 0 1 0.26,0.06 Z"/></clipPath>
+    <clipPath id="clip-roundedTriangle" clipPathUnits="objectBoundingBox"><path d="M0.5,0.06 C0.57,0.06 0.61,0.11 0.65,0.19 L0.92,0.78 C0.96,0.85 0.92,0.92 0.84,0.92 L0.16,0.92 C0.08,0.92 0.04,0.85 0.08,0.78 L0.35,0.19 C0.39,0.11 0.43,0.06 0.5,0.06 Z"/></clipPath>
+    <clipPath id="clip-heart" clipPathUnits="objectBoundingBox"><path d="M0.5,0.94 C0.207,0.710 0.06,0.510 0.06,0.318 C0.06,0.156 0.198,0.06 0.335,0.06 C0.408,0.06 0.473,0.117 0.5,0.184 C0.528,0.117 0.592,0.06 0.665,0.06 C0.803,0.06 0.94,0.156 0.94,0.318 C0.94,0.510 0.793,0.710 0.5,0.94 Z"/></clipPath>
+    <clipPath id="clip-flower" clipPathUnits="objectBoundingBox">
+      <circle cx="0.5" cy="0.5" r="0.13"/>
+      <circle cx="0.5" cy="0.28" r="0.19"/>
+      <circle cx="0.72" cy="0.39" r="0.19"/>
+      <circle cx="0.72" cy="0.61" r="0.19"/>
+      <circle cx="0.5" cy="0.72" r="0.19"/>
+      <circle cx="0.28" cy="0.61" r="0.19"/>
+      <circle cx="0.28" cy="0.39" r="0.19"/>
+    </clipPath>
+    <clipPath id="clip-cloud" clipPathUnits="objectBoundingBox">
+      <ellipse cx="0.5" cy="0.62" rx="0.34" ry="0.2"/>
+      <ellipse cx="0.22" cy="0.58" rx="0.18" ry="0.18"/>
+      <ellipse cx="0.78" cy="0.58" rx="0.18" ry="0.18"/>
+      <ellipse cx="0.36" cy="0.42" rx="0.2" ry="0.2"/>
+      <ellipse cx="0.62" cy="0.4" rx="0.22" ry="0.22"/>
+    </clipPath>
+    <clipPath id="clip-catFace" clipPathUnits="objectBoundingBox">
+      <ellipse cx="0.5" cy="0.58" rx="0.42" ry="0.32"/>
+      <path d="M0.10,0.36 Q0.08,0.20 0.16,0.06 Q0.20,0.00 0.24,0.06 Q0.30,0.16 0.32,0.30 Q0.33,0.34 0.28,0.34 Z"/>
+      <path d="M0.90,0.36 Q0.92,0.20 0.84,0.06 Q0.80,0.00 0.76,0.06 Q0.70,0.16 0.68,0.30 Q0.67,0.34 0.72,0.34 Z"/>
+    </clipPath>
+  </defs>
+</svg>
 <div id="app"></div>
 
 <script>
@@ -149,6 +178,12 @@ function icon(name, size, color){
     hourglass: '<path d="M6.5 4h11M6.5 20h11M7.2 4c0 4 3 5.2 4.8 6-1.8.8-4.8 2-4.8 6M16.8 4c0 4-3 5.2-4.8 6 1.8.8 4.8 2 4.8 6" stroke="'+color+'" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>',
     clock: '<circle cx="12" cy="12" r="8.2" stroke="'+color+'" stroke-width="1.6" fill="none"/><path d="M12 7.4v5l3.6 2" stroke="'+color+'" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
     paw: '<path d="'+PAW_PATH_D+'" fill="'+color+'"/>',
+    shapeCircle: '<circle cx="12" cy="12" r="9" stroke="'+color+'" stroke-width="1.6" fill="none"/>',
+    shapeSquare: '<rect x="4" y="4" width="16" height="16" rx="5" stroke="'+color+'" stroke-width="1.6" fill="none"/>',
+    shapeTriangle: '<path d="M12 3.5c1 0 1.6.6 2 1.6L20.5 18c.7 1.3-.2 2.8-1.7 2.8H5.2c-1.5 0-2.4-1.5-1.7-2.8L10 5.1c.4-1 1-1.6 2-1.6Z" stroke="'+color+'" stroke-width="1.6" fill="none" stroke-linejoin="round"/>',
+    shapeCloud: '<path d="M7 17c-2.8 0-4.6-2.6-3.4-5 .3-3.4 4.4-5 7-3 1.3-2.6 5.6-2.8 7.2 0 3.4-.3 5.7 3 4 5.8 1.4 2-1 4.2-3.2 3.6-1.2 1.5-5 1.5-6.2 0-1.8.6-3.8.3-4.6-1Z" stroke="'+color+'" stroke-width="1.4" fill="none" stroke-linejoin="round"/>',
+    shapeCatFace: '<ellipse cx="12" cy="13.9" rx="10.1" ry="7.7" stroke="'+color+'" stroke-width="1.4" fill="none"/><path d="M2.4,8.64 Q1.92,4.8 3.84,1.44 Q4.8,0 5.76,1.44 Q7.2,3.84 7.68,7.2 Q7.92,8.16 6.72,8.16 Z" stroke="'+color+'" stroke-width="1.2" fill="none" stroke-linejoin="round"/><path d="M21.6,8.64 Q22.08,4.8 20.16,1.44 Q19.2,0 18.24,1.44 Q16.8,3.84 16.32,7.2 Q16.08,8.16 17.28,8.16 Z" stroke="'+color+'" stroke-width="1.2" fill="none" stroke-linejoin="round"/>',
+    shapeFlower: '<circle cx="12" cy="12" r="2" stroke="'+color+'" stroke-width="1.2" fill="none"/><circle cx="12" cy="7.2" r="3.4" stroke="'+color+'" stroke-width="1.2" fill="none"/><circle cx="16.8" cy="9.6" r="3.4" stroke="'+color+'" stroke-width="1.2" fill="none"/><circle cx="16.8" cy="14.4" r="3.4" stroke="'+color+'" stroke-width="1.2" fill="none"/><circle cx="12" cy="16.8" r="3.4" stroke="'+color+'" stroke-width="1.2" fill="none"/><circle cx="7.2" cy="14.4" r="3.4" stroke="'+color+'" stroke-width="1.2" fill="none"/><circle cx="7.2" cy="9.6" r="3.4" stroke="'+color+'" stroke-width="1.2" fill="none"/>',
     heart: '<path d="M12.3 19.3C7.9 16.4 4.4 13.3 4.6 9.8 4.7 7.2 6.9 5.4 9.4 5.9c1.3.3 2.1 1.2 2.7 2.2.6-1.1 1.7-2.1 3-2.2 2.5-.2 4.5 1.8 4.2 4.4-.4 3.4-3.9 6.1-7 9Z" stroke="'+color+'" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/><path d="M9.7 6.6C7.6 6.5 6 8 6 9.9" stroke="'+color+'" stroke-width="0.9" fill="none" stroke-linecap="round" opacity="0.55"/>',
     star: '<path d="M12.6 3.4 14 8.7l5.6.2-4.4 3.5 1.6 5.4-4.9-3.1-5.1 2.8 1.9-5.3-4.2-3.8 5.6-.4Z" stroke="'+color+'" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/><path d="M12.6 3.4 14 8.7" stroke="'+color+'" stroke-width="0.9" opacity="0.5" stroke-linecap="round"/><path d="M8.2 17.9 9.9 14" stroke="'+color+'" stroke-width="0.7" opacity="0.4" stroke-linecap="round"/>',
     spiral: '<path d="M12.9 12.4c1.9 0 2.8-1.6 2.4-3.1-.4-1.6-2.1-2.5-3.7-2-1.9.5-2.9 2.4-2.4 4.4.6 2.4 3 3.8 5.4 3.2 2.8-.6 4.5-3.3 3.9-6.1" stroke="'+color+'" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M12.9 12.4c1.9 0 2.8-1.6 2.4-3.1" stroke="'+color+'" stroke-width="0.8" opacity="0.5" stroke-linecap="round"/>',
@@ -261,7 +296,7 @@ function pickPlayground(){
     dy: (-(8+Math.random()*14)).toFixed(1),
     rot: (Math.random()*16-8).toFixed(1),
     rot2: (Math.random()*8-4).toFixed(1),
-    size: Math.round(100 + Math.random()*40)
+    size: Math.round(70 + Math.random()*30)
   }));
 }
 
@@ -287,7 +322,7 @@ function render(){
     let dimmed = false;
     if(sticker){
       const t = 'transform:translate('+sticker.ox+'px,'+sticker.oy+'px) rotate('+sticker.rot+'deg) scale('+sticker.scale+');';
-      inner = '<img src="'+sticker.img+'" style="width:70%;height:70%;object-fit:contain;'+t+'filter:drop-shadow(0 2px 3px rgba(193,123,79,0.35));" />';
+      inner = '<img src="'+sticker.img+'" style="width:92%;height:92%;object-fit:contain;'+t+'filter:drop-shadow(0 2px 3px rgba(193,123,79,0.35));" />';
       if(sticker.catId){
         const cat = catById(sticker.catId);
         if(cat){
@@ -387,6 +422,7 @@ function render(){
     <div style="text-align:center;font-size:11px;color:#8A7F78;padding-bottom:12px;">${icon('flower',12,'#C97B93')} 本月共記錄  ${countThisMonth(y,m)}  次喵 ${icon('flower',12,'#9CAF88')}</div>
 
     <div id="sourceOverlay" class="overlay"></div>
+    <div id="shapeOverlay" class="overlay"></div>
     <div id="editorOverlay" class="overlay"></div>
     <div id="presetOverlay" class="overlay"></div>
     <div id="tagOverlay" class="overlay"></div>
@@ -422,7 +458,7 @@ function openDayDetail(key){
     <div style="display:flex;justify-content:flex-end;"><button class="icon-btn" onclick="closeOverlay('dayDetailOverlay')">${icon('close',16)}</button></div>
     <p style="text-align:center;font-family:'Klee One',sans-serif;font-size:18px;color:#4A3E3D;margin:2px 0 14px;">${d.getDate()} ${MONTH_EN[d.getMonth()]}</p>
     <div class="card" style="width:180px;height:180px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;position:relative;${cat?('border:2.5px solid '+cat.color+';'):''}">
-      <img src="${sticker.img}" style="width:70%;height:70%;object-fit:contain;${t}filter:drop-shadow(0 2px 4px rgba(193,123,79,0.35));" />
+      <img src="${sticker.img}" style="width:92%;height:92%;object-fit:contain;${t}filter:drop-shadow(0 2px 4px rgba(193,123,79,0.35));" />
       ${cat ? '<span style="position:absolute;bottom:6px;right:6px;font-size:11px;color:'+cat.color+';background:#FDFBF7;padding:2px 8px;border-radius:10px;border:1px solid '+cat.color+'50;">'+cat.name+'</span>' : ''}
     </div>
     ${sticker.tags && sticker.tags.length ? '<p style="text-align:center;font-size:18px;margin:0 0 10px;">'+sticker.tags.map(tid=>{const t2=STATUS_TAGS.find(s=>s.id===tid); return t2?t2.icon:'';}).join(' ')+'</p>' : ''}
@@ -470,51 +506,91 @@ function openSourcePicker(key){
 }
 function closeOverlay(id){ document.getElementById(id).classList.remove('show'); }
 
+let pendingRawImage = null; // 選好但還沒裁形狀的原始照片
+let pendingShapeId = null;  // 使用者選的形狀
 function onFileChosen(evt, source){
   const file = evt.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = async () => {
-    const rawDataUrl = reader.result;
+  reader.onload = () => {
+    pendingRawImage = reader.result;
     pendingSource = source;
     closeOverlay('sourceOverlay');
-    showBgLoading('AI 去背處理中…');
-    segCache = null;
-    try {
-      pendingImage = await removeBackgroundAI(rawDataUrl);
-    } catch(e) {
-      console.error('AI 去背失敗，改用原圖', e);
-      pendingImage = rawDataUrl;
-      segCache = null;
-    }
-    hideBgLoading();
-    openEditor();
+    openShapePicker();
   };
   reader.readAsDataURL(file);
 }
 
-// ---------------- AI 去背（純前端，TensorFlow.js DeepLab，PASCAL VOC 類別內建「貓」）----------------
-let deeplabModelPromise = null;
-function loadScriptOnce(src){
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector('script[src="'+src+'"]');
-    if(existing){ existing.addEventListener('load', resolve); if(existing.dataset.loaded) resolve(); return; }
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = () => { s.dataset.loaded = '1'; resolve(); };
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-async function getDeeplabModel(){
-  if(!deeplabModelPromise){
-    deeplabModelPromise = (async () => {
-      await loadScriptOnce('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js');
-      await loadScriptOnce('https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab@0.2.1/dist/deeplab.min.js');
-      return await window.deeplab.load({base: 'pascal', quantizationBytes: 2});
-    })();
+// ---------------- 形狀裁切（純前端 canvas，不用 AI，改成選形狀套用白邊）----------------
+const SHAPE_LIST = [
+  {id:'circle', zh:'圓形'},
+  {id:'roundedSquare', zh:'方形'},
+  {id:'roundedTriangle', zh:'三角形'},
+  {id:'heart', zh:'心形'},
+  {id:'flower', zh:'花形'},
+  {id:'cloud', zh:'雲朵形'},
+  {id:'catFace', zh:'喵形'}
+];
+const SHAPE_DRAW = {
+  circle: (ctx, s) => { ctx.beginPath(); ctx.arc(s*0.5, s*0.5, s*0.47, 0, Math.PI*2); ctx.fill(); },
+  roundedSquare: (ctx, s) => { roundRectPath(ctx, s*0.06, s*0.06, s*0.88, s*0.88, s*0.2); ctx.fill(); },
+  roundedTriangle: (ctx, s) => {
+    ctx.beginPath();
+    ctx.moveTo(s*0.5, s*0.06);
+    ctx.bezierCurveTo(s*0.57, s*0.06, s*0.61, s*0.11, s*0.65, s*0.19);
+    ctx.lineTo(s*0.92, s*0.78);
+    ctx.bezierCurveTo(s*0.96, s*0.85, s*0.92, s*0.92, s*0.84, s*0.92);
+    ctx.lineTo(s*0.16, s*0.92);
+    ctx.bezierCurveTo(s*0.08, s*0.92, s*0.04, s*0.85, s*0.08, s*0.78);
+    ctx.lineTo(s*0.35, s*0.19);
+    ctx.bezierCurveTo(s*0.39, s*0.11, s*0.43, s*0.06, s*0.5, s*0.06);
+    ctx.closePath(); ctx.fill();
+  },
+  heart: (ctx, s) => {
+    ctx.beginPath();
+    ctx.moveTo(s*0.5, s*0.94);
+    ctx.bezierCurveTo(s*0.207, s*0.710, s*0.06, s*0.510, s*0.06, s*0.318);
+    ctx.bezierCurveTo(s*0.06, s*0.156, s*0.198, s*0.06, s*0.335, s*0.06);
+    ctx.bezierCurveTo(s*0.408, s*0.06, s*0.473, s*0.117, s*0.5, s*0.184);
+    ctx.bezierCurveTo(s*0.528, s*0.117, s*0.592, s*0.06, s*0.665, s*0.06);
+    ctx.bezierCurveTo(s*0.803, s*0.06, s*0.94, s*0.156, s*0.94, s*0.318);
+    ctx.bezierCurveTo(s*0.94, s*0.510, s*0.793, s*0.710, s*0.5, s*0.94);
+    ctx.closePath(); ctx.fill();
+  },
+  flower: (ctx, s) => {
+    const petals = [[0.5,0.5,0.13],[0.5,0.28,0.19],[0.72,0.39,0.19],[0.72,0.61,0.19],[0.5,0.72,0.19],[0.28,0.61,0.19],[0.28,0.39,0.19]];
+    petals.forEach(([cx,cy,r])=>{ ctx.beginPath(); ctx.arc(s*cx, s*cy, s*r, 0, Math.PI*2); ctx.fill(); });
+  },
+  cloud: (ctx, s) => {
+    const bumps = [[0.5,0.62,0.34,0.2],[0.22,0.58,0.18,0.18],[0.78,0.58,0.18,0.18],[0.36,0.42,0.2,0.2],[0.62,0.4,0.22,0.22]];
+    bumps.forEach(([cx,cy,rx,ry])=>{ ctx.beginPath(); ctx.ellipse(s*cx, s*cy, s*rx, s*ry, 0, 0, Math.PI*2); ctx.fill(); });
+  },
+  catFace: (ctx, s) => {
+    ctx.beginPath(); ctx.ellipse(s*0.5, s*0.58, s*0.42, s*0.32, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s*0.10, s*0.36);
+    ctx.quadraticCurveTo(s*0.08, s*0.20, s*0.16, s*0.06);
+    ctx.quadraticCurveTo(s*0.20, s*0.00, s*0.24, s*0.06);
+    ctx.quadraticCurveTo(s*0.30, s*0.16, s*0.32, s*0.30);
+    ctx.quadraticCurveTo(s*0.33, s*0.34, s*0.28, s*0.34);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s*0.90, s*0.36);
+    ctx.quadraticCurveTo(s*0.92, s*0.20, s*0.84, s*0.06);
+    ctx.quadraticCurveTo(s*0.80, s*0.00, s*0.76, s*0.06);
+    ctx.quadraticCurveTo(s*0.70, s*0.16, s*0.68, s*0.30);
+    ctx.quadraticCurveTo(s*0.67, s*0.34, s*0.72, s*0.34);
+    ctx.closePath(); ctx.fill();
   }
-  return deeplabModelPromise;
+};
+function roundRectPath(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
 }
 function loadImageEl(src){
   return new Promise((resolve, reject) => {
@@ -524,39 +600,39 @@ function loadImageEl(src){
     img.src = src;
   });
 }
-let segCache = null; // 快取上一次的 AI 分割原始資料，供邊緣程度滑桿即時重算用，不用每次都重跑模型
-async function removeBackgroundAI(dataUrl){
-  const model = await getDeeplabModel();
-  const imgEl = await loadImageEl(dataUrl);
-  const { legend, segmentationMap, width, height } = await model.segment(imgEl);
-  segCache = { imgEl, segmentationMap, subjectColor: legend['cat'] || legend['dog'] || null, bgColor: legend['background'] || null, width, height };
-  return composeSticker(12); // 預設容許誤差
+function buildShapeMask(shapeId, size){
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  SHAPE_DRAW[shapeId](ctx, size);
+  const imgData = ctx.getImageData(0, 0, size, size);
+  const mask = new Uint8Array(size*size);
+  for(let p=0, i=0; p<mask.length; p++, i+=4){ mask[p] = imgData.data[i+3] > 128 ? 1 : 0; }
+  return mask;
 }
-// tol：判定「這是不是貓」的顏色容許誤差。數字越小＝判定越嚴格，去背去得越乾淨但可能連毛邊都被切掉；
-// 數字越大＝判定越寬鬆，保留較多邊緣毛髮細節，但背景可能去得不夠乾淨
-function composeSticker(tol){
-  const { imgEl, segmentationMap, subjectColor, bgColor, width, height } = segCache;
-  const matches = (i, color) => Math.abs(segmentationMap[i]-color[0])<=tol && Math.abs(segmentationMap[i+1]-color[1])<=tol && Math.abs(segmentationMap[i+2]-color[2])<=tol;
-
-  const mask = new Uint8Array(width*height);
-  if(subjectColor){
-    for(let p=0, i=0; i<segmentationMap.length; i+=4, p++){
-      mask[p] = matches(i, subjectColor) ? 1 : 0;
-    }
-  } else {
-    for(let p=0, i=0; i<segmentationMap.length; i+=4, p++){
-      mask[p] = (bgColor && matches(i, bgColor)) ? 0 : 1;
-    }
-  }
-
-  const borderPx = 7; // 白邊厚度，固定
-  const dilated = dilateMask(mask, width, height, borderPx);
+function composeShapedSticker(imgEl, shapeId, size, t){
+  t = t || {scale:1, rot:0, ox:0, oy:0};
+  const mask = buildShapeMask(shapeId, size);
+  const dilated = dilateMask(mask, size, size, Math.round(size*0.022));
 
   const canvas = document.createElement('canvas');
-  canvas.width = width; canvas.height = height;
+  canvas.width = size; canvas.height = size;
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(imgEl, 0, 0, width, height);
-  const imageData = ctx.getImageData(0, 0, width, height);
+
+  // 先用「填滿」方式算出基準寬高（等同 CSS object-fit:cover），再疊加使用者調整的縮放/位移/旋轉
+  const ir = imgEl.width / imgEl.height;
+  let baseW, baseH;
+  if(ir > 1){ baseH = size; baseW = size*ir; } else { baseW = size; baseH = size/ir; }
+
+  ctx.save();
+  ctx.translate(size/2 + t.ox, size/2 + t.oy);
+  ctx.rotate(t.rot * Math.PI/180);
+  ctx.scale(t.scale, t.scale);
+  ctx.drawImage(imgEl, -baseW/2, -baseH/2, baseW, baseH);
+  ctx.restore();
+
+  const imageData = ctx.getImageData(0, 0, size, size);
   const data = imageData.data;
 
   for(let p=0, i=0; p<mask.length; p++, i+=4){
@@ -594,20 +670,27 @@ function dilateMask(mask, width, height, radius){
   }
   return current;
 }
-function showBgLoading(msg){
-  let el = document.getElementById('bgLoadingIndicator');
-  if(!el){
-    el = document.createElement('div');
-    el.id = 'bgLoadingIndicator';
-    el.style.cssText = 'position:fixed;inset:0;background:rgba(253,251,247,0.94);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;';
-    document.body.appendChild(el);
-  }
-  el.innerHTML = '<div style="font-family:\'Gochi Hand\',cursive;font-size:22px;color:#C17B4F;">'+msg+'</div><div style="font-size:11px;color:#8A7F78;">第一次使用需要下載 AI 模型，請稍等幾秒</div>';
-  el.style.display = 'flex';
+function openShapePicker(){
+  const el = document.getElementById('shapeOverlay');
+  el.innerHTML = `
+    ${overlayTapeHTML()}
+    <div style="display:flex;justify-content:flex-end;"><button class="icon-btn" onclick="closeOverlay('shapeOverlay'); openSourcePicker(pendingDate);">${icon('close',16)}</button></div>
+    <p style="text-align:center;font-size:17px;font-weight:600;color:#4A3E3D;margin:4px 0 6px;">選一個形狀</p>
+    <p style="text-align:center;font-size:11px;color:#8A7F78;margin:0 0 16px;">照片會裁成你選的形狀，加上白色貼紙邊</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+      ${SHAPE_LIST.map(s => '<div class="card" style="padding:16px 4px;text-align:center;cursor:pointer;" onclick="applyShape(\''+s.id+'\')"><div>'+shapeGlyph(s.id)+'</div><div style="font-size:11px;color:#4A3E3D;margin-top:6px;">'+s.zh+'</div></div>').join('')}
+    </div>
+  `;
+  el.classList.add('show');
 }
-function hideBgLoading(){
-  const el = document.getElementById('bgLoadingIndicator');
-  if(el) el.style.display = 'none';
+function shapeGlyph(id){
+  const map = { circle:'shapeCircle', roundedSquare:'shapeSquare', roundedTriangle:'shapeTriangle', heart:'heart', flower:'shapeFlower', cloud:'shapeCloud', catFace:'shapeCatFace' };
+  return icon(map[id]||'paw', 26, '#D9A441');
+}
+function applyShape(shapeId){
+  pendingShapeId = shapeId;
+  closeOverlay('shapeOverlay');
+  openEditor();
 }
 
 // ---------------- 貼紙庫 ----------------
@@ -645,29 +728,31 @@ function confirmPreset(){
   openTagStep();
 }
 
-// ---------------- 貼紙編輯頁（照片已在選取後即時 AI 去背，這裡只做位置/大小/角度調整） ----------------
+// ---------------- 貼紙編輯頁（照片已在選取後裁成選定形狀，這裡只做位置/大小/角度調整） ----------------
 function openEditor(){
   editState = {scale:1, rot:0, ox:0, oy:0};
   const el = document.getElementById('editorOverlay');
+  const clipUrl = 'url(#clip-'+pendingShapeId+')';
   el.innerHTML = `
     ${overlayTapeHTML()}
     <div style="display:flex;justify-content:flex-end;"><button class="icon-btn" onclick="closeOverlay('editorOverlay')">${icon('close',16)}</button></div>
-    <p style="text-align:center;font-size:14px;color:#8A7F78;margin:4px 0 16px;">拖曳貼紙調整位置，用下方滑桿調整大小/角度</p>
+    <p style="text-align:center;font-size:14px;color:#8A7F78;margin:4px 0 16px;">拖曳照片調整位置，用下方滑桿調整照片的大小/角度</p>
     <div id="editorStage" style="position:relative;height:220px;display:flex;align-items:center;justify-content:center;touch-action:none;">
-      <div id="editorFrame" style="width:180px;height:180px;border-radius:16px;overflow:hidden;background:#FDFBF7;border:3px dashed #D9A441;box-shadow:0 4px 10px rgba(193,123,79,0.3);position:relative;">
-        <img id="editorImg" src="${pendingImage}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(193,123,79,0.4));cursor:grab;" />
+      <div id="editorFrame" style="width:180px;height:180px;background:#fff;clip-path:${clipUrl};box-shadow:0 4px 10px rgba(193,123,79,0.3);position:relative;">
+        <div style="position:absolute;inset:4px;overflow:hidden;clip-path:${clipUrl};">
+          <img id="editorImg" src="${pendingRawImage}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:grab;" />
+        </div>
       </div>
     </div>
-    <p style="font-size:10px;color:#8A7F78;text-align:center;margin:-8px 0 12px;">虛線框以外的部分不會顯示在貼紙上</p>
+    <p style="font-size:10px;color:#8A7F78;text-align:center;margin:-8px 0 12px;">白色部分是貼紙邊，照片只會顯示在形狀範圍內</p>
     <div style="padding:0 12px;">
-      <label style="font-size:12px;color:#8A7F78;">大小</label>
-      <input type="range" min="0.5" max="2" step="0.05" value="1" oninput="updateEdit('scale', this.value)">
-      <label style="font-size:12px;color:#8A7F78;">角度</label>
+      <label style="font-size:12px;color:#8A7F78;">照片大小</label>
+      <input type="range" min="0.6" max="2.5" step="0.05" value="1" oninput="updateEdit('scale', this.value)">
+      <label style="font-size:12px;color:#8A7F78;">照片角度</label>
       <input type="range" min="-45" max="45" step="1" value="0" oninput="updateEdit('rot', this.value)">
-      ${segCache ? '<label style="font-size:12px;color:#8A7F78;">去背邊緣程度</label><input type="range" min="4" max="36" step="2" value="12" oninput="updateEdgeTolerance(this.value)">' : ''}
     </div>
     <div style="display:flex;gap:10px;margin-top:14px;">
-      <button class="secondary-btn" style="flex:1;" onclick="closeOverlay('editorOverlay'); openSourcePicker(pendingDate);">‹ 重新選擇</button>
+      <button class="secondary-btn" style="flex:1;" onclick="closeOverlay('editorOverlay'); openShapePicker();">‹ 換個形狀</button>
       <button class="primary-btn" style="flex:1;" onclick="confirmEditor()">下一步</button>
     </div>
   `;
@@ -679,20 +764,19 @@ function openEditor(){
   el.classList.add('show');
 }
 function updateEdit(key, val){ editState[key] = parseFloat(val); applyEditTransform(); }
-function updateEdgeTolerance(val){
-  if(!segCache) return;
-  pendingImage = composeSticker(parseInt(val,10));
-  const img = document.getElementById('editorImg');
-  if(img) img.src = pendingImage;
-}
 function applyEditTransform(){
   const img = document.getElementById('editorImg');
   if(!img) return;
   img.style.transform = `translate(${editState.ox}px,${editState.oy}px) rotate(${editState.rot}deg) scale(${editState.scale})`;
 }
-function confirmEditor(){
+async function confirmEditor(){
+  const imgEl = await loadImageEl(pendingRawImage);
+  const bakeSize = 400;
+  const ratio = bakeSize / 180; // 預覽框是 180px，這裡放大烘焙成最終圖檔，位移要等比例換算
+  const t = { scale: editState.scale, rot: editState.rot, ox: editState.ox*ratio, oy: editState.oy*ratio };
+  pendingImage = composeShapedSticker(imgEl, pendingShapeId, bakeSize, t);
   pendingStickerDraft = {img: pendingImage, source: pendingSource, presetId:null,
-    scale: editState.scale, rot: editState.rot, ox: editState.ox, oy: editState.oy};
+    scale: 1, rot: 0, ox: 0, oy: 0};
   closeOverlay('editorOverlay');
   openTagStep();
 }
@@ -963,7 +1047,7 @@ function drawPoster(){
           drawTasks.push(new Promise(res=>{
             const img = new Image();
             img.onload = ()=>{
-              ctx.drawImage(img, x+16, yy+16, cell-32, cell-32);
+              ctx.drawImage(img, x+4, yy+4, cell-8, cell-8);
               if(sticker.tags && sticker.tags.length){
                 ctx.font='13px sans-serif'; ctx.textAlign='left';
                 ctx.fillText(sticker.tags.map(tid=>{const t=STATUS_TAGS.find(s=>s.id===tid); return t?t.icon:'';}).join(''), x+6, yy+cell-6);
@@ -1010,7 +1094,7 @@ function drawTape(ctx, cx, cy, w, h, angleDeg, color){
 
 跟正式 iOS App 的落差（設計上刻意簡化，之後在 Xcode 裡都是完整版）：
 1. 拍照/相簿都用瀏覽器的「選取檔案」，手機瀏覽器點「拍喵」通常會直接叫出相機。
-2. 已經有真的 AI 去背（TensorFlow.js + DeepLab，瀏覽器端執行，第一次使用會下載模型），但這是通用物件辨識模型不是專門訓練給貓咪用的，邊緣精細度會不如正式 App 用 Vision 框架做的效果。
+2. 拍照/相簿的照片不是用 AI 去背，是讓使用者選一個形狀（圓形/圓角方形/圓角三角形/愛心/花形/雲朵/貓臉）把照片裁成那個形狀，再加上白色貼紙邊，跟插畫貼紙庫風格一致；正式 App 之後如果想做真的 AI 去背，可以用手機的 Vision 框架另外做。
 3. 手勢調整用「拖曳 + 滑桿」，不是真的雙指縮放/旋轉手勢，但效果一致。
 4. 12 款內建貼紙是真實水彩插畫（已去背成透明背景 PNG），存在 PRESET_STICKERS 陣列裡，要換圖直接改對應項目的 img 內容。
 5. 資料存在這個瀏覽器的 localStorage 裡（跟裝置/瀏覽器綁定，不是雲端），換一台手機或清瀏覽器資料就會消失，正式 App 會改成真正的資料庫。
