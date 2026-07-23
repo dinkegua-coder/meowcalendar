@@ -464,7 +464,7 @@ function openSourcePicker(key){
       <div>${icon('gift',26,'#C17B4F')}</div>
       <div style="font-size:13px;color:#4A3E3D;margin-top:6px;">給我喵</div>
     </div>
-    <p style="font-size:11px;color:#8A7F78;text-align:center;margin-top:16px;">拍照/選相簿後會用瀏覽器內建 AI 自動去背，第一次使用需下載模型稍等幾秒；效果可能不如正式 App 精細</p>
+    <div style="margin-top:16px;"></div>
   `;
   el.classList.add('show');
 }
@@ -479,11 +479,13 @@ function onFileChosen(evt, source){
     pendingSource = source;
     closeOverlay('sourceOverlay');
     showBgLoading('AI 去背處理中…');
+    segCache = null;
     try {
       pendingImage = await removeBackgroundAI(rawDataUrl);
     } catch(e) {
       console.error('AI 去背失敗，改用原圖', e);
       pendingImage = rawDataUrl;
+      segCache = null;
     }
     hideBgLoading();
     openEditor();
@@ -522,17 +524,11 @@ function loadImageEl(src){
     img.src = src;
   });
 }
+let segCache = null; // 快取上一次的 AI 分割結果，供羽化滑桿即時重算用，不用每次都重跑模型
 async function removeBackgroundAI(dataUrl){
   const model = await getDeeplabModel();
   const imgEl = await loadImageEl(dataUrl);
   const { legend, segmentationMap, width, height } = await model.segment(imgEl);
-
-  const canvas = document.createElement('canvas');
-  canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(imgEl, 0, 0, width, height);
-  const imageData = ctx.getImageData(0, 0, width, height);
-  const data = imageData.data;
 
   const matches = (i, color, tol) => Math.abs(segmentationMap[i]-color[0])<=tol && Math.abs(segmentationMap[i+1]-color[1])<=tol && Math.abs(segmentationMap[i+2]-color[2])<=tol;
   const subjectColor = legend['cat'] || legend['dog'];
@@ -550,20 +546,67 @@ async function removeBackgroundAI(dataUrl){
     }
   }
 
-  // 向外擴張出一圈白邊，模擬真正印刷貼紙的刀模白邊感
-  const outlineMask = dilateMask(mask, width, height, 7);
+  segCache = { imgEl, mask, width, height };
+  return composeSticker(2); // 預設中等羽化程度
+}
+// featherPx：邊緣柔化程度（0 = 完全銳利的鋸齒邊，數字越大邊緣越柔和/越模糊）
+function composeSticker(featherPx){
+  const { imgEl, mask, width, height } = segCache;
+  const borderPx = 7; // 白邊厚度，固定
+  const dilated = dilateMask(mask, width, height, borderPx);
+
+  const catAlpha = featherPx>0 ? blurMask(mask, width, height, featherPx) : Float32Array.from(mask, v=>v*255);
+  const ringAlpha = featherPx>0 ? blurMask(dilated, width, height, featherPx) : Float32Array.from(dilated, v=>v*255);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(imgEl, 0, 0, width, height);
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
 
   for(let p=0, i=0; p<mask.length; p++, i+=4){
-    if(mask[p]){
-      data[i+3] = 255;
-    } else if(outlineMask[p]){
-      data[i] = 255; data[i+1] = 255; data[i+2] = 255; data[i+3] = 255;
-    } else {
-      data[i+3] = 0;
-    }
+    const catA = catAlpha[p]/255;   // 這個像素有多「貓」（1=完全是貓，0=完全不是）
+    const ringA = ringAlpha[p]/255; // 這個像素整體有多不透明（貓+白邊一起算）
+    data[i]   = data[i]*catA   + 255*(1-catA);
+    data[i+1] = data[i+1]*catA + 255*(1-catA);
+    data[i+2] = data[i+2]*catA + 255*(1-catA);
+    data[i+3] = Math.round(ringA*255);
   }
   ctx.putImageData(imageData, 0, 0);
   return canvas.toDataURL('image/png');
+}
+function blurMask(mask, width, height, radius){
+  const src = Float32Array.from(mask, v=>v*255);
+  const h = boxBlurPass(src, width, height, radius, true);
+  return boxBlurPass(h, width, height, radius, false);
+}
+function boxBlurPass(src, width, height, radius, horizontal){
+  const dst = new Float32Array(width*height);
+  const norm = 1/(radius*2+1);
+  if(horizontal){
+    for(let y=0; y<height; y++){
+      const rowOff = y*width;
+      let sum = 0;
+      for(let k=-radius; k<=radius; k++){ sum += src[rowOff + Math.min(width-1, Math.max(0,k))]; }
+      dst[rowOff] = sum*norm;
+      for(let x=1; x<width; x++){
+        sum += src[rowOff + Math.min(width-1, x+radius)] - src[rowOff + Math.max(0, x-radius-1)];
+        dst[rowOff+x] = sum*norm;
+      }
+    }
+  } else {
+    for(let x=0; x<width; x++){
+      let sum = 0;
+      for(let k=-radius; k<=radius; k++){ sum += src[Math.min(height-1, Math.max(0,k))*width + x]; }
+      dst[x] = sum*norm;
+      for(let y=1; y<height; y++){
+        sum += src[Math.min(height-1, y+radius)*width+x] - src[Math.max(0, y-radius-1)*width+x];
+        dst[y*width+x] = sum*norm;
+      }
+    }
+  }
+  return dst;
 }
 function dilateMask(mask, width, height, radius){
   let current = mask;
@@ -648,15 +691,22 @@ function openEditor(){
     <div style="display:flex;justify-content:flex-end;"><button class="icon-btn" onclick="closeOverlay('editorOverlay')">${icon('close',16)}</button></div>
     <p style="text-align:center;font-size:14px;color:#8A7F78;margin:4px 0 16px;">拖曳貼紙調整位置，用下方滑桿調整大小/角度</p>
     <div id="editorStage" style="position:relative;height:220px;display:flex;align-items:center;justify-content:center;touch-action:none;">
-      <img id="editorImg" src="${pendingImage}" style="width:160px;height:160px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(193,123,79,0.4));cursor:grab;" />
+      <div id="editorFrame" style="width:180px;height:180px;border-radius:16px;overflow:hidden;background:#FDFBF7;border:3px dashed #D9A441;box-shadow:0 4px 10px rgba(193,123,79,0.3);position:relative;">
+        <img id="editorImg" src="${pendingImage}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(193,123,79,0.4));cursor:grab;" />
+      </div>
     </div>
+    <p style="font-size:10px;color:#8A7F78;text-align:center;margin:-8px 0 12px;">虛線框以外的部分不會顯示在貼紙上</p>
     <div style="padding:0 12px;">
       <label style="font-size:12px;color:#8A7F78;">大小</label>
       <input type="range" min="0.5" max="2" step="0.05" value="1" oninput="updateEdit('scale', this.value)">
       <label style="font-size:12px;color:#8A7F78;">角度</label>
       <input type="range" min="-45" max="45" step="1" value="0" oninput="updateEdit('rot', this.value)">
+      ${segCache ? '<label style="font-size:12px;color:#8A7F78;">去背柔化程度</label><input type="range" min="0" max="6" step="1" value="2" oninput="updateFeather(this.value)">' : ''}
     </div>
-    <button class="primary-btn" style="margin-top:14px;" onclick="confirmEditor()">下一步：打卡標籤</button>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="secondary-btn" style="flex:1;" onclick="closeOverlay('editorOverlay'); openSourcePicker(pendingDate);">‹ 重新選擇</button>
+      <button class="primary-btn" style="flex:1;" onclick="confirmEditor()">下一步</button>
+    </div>
     <p style="font-size:11px;color:#8A7F78;text-align:center;margin-top:10px;">已用瀏覽器 AI 自動去背，如果邊緣不夠乾淨，正式 App 會用手機的 Vision 框架做得更精細</p>
   `;
   applyEditTransform();
@@ -667,6 +717,12 @@ function openEditor(){
   el.classList.add('show');
 }
 function updateEdit(key, val){ editState[key] = parseFloat(val); applyEditTransform(); }
+function updateFeather(val){
+  if(!segCache) return;
+  pendingImage = composeSticker(parseInt(val,10));
+  const img = document.getElementById('editorImg');
+  if(img) img.src = pendingImage;
+}
 function applyEditTransform(){
   const img = document.getElementById('editorImg');
   if(!img) return;
