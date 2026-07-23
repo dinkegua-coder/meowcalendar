@@ -281,7 +281,7 @@ function catById(id){ return catProfiles.find(c=>c.id===id); }
 function pickPlayground(){
   const keys = Object.keys(stickers);
   const shuffled = keys.slice().sort(()=>Math.random()-0.5);
-  const count = Math.min(shuffled.length, 3 + Math.floor(Math.random()*3));
+  const count = Math.min(shuffled.length, 5);
   const chosen = shuffled.slice(0, count);
   playgroundPicks = chosen.map((key,i)=>({
     key,
@@ -297,6 +297,10 @@ function pickPlayground(){
     size: Math.round(70 + Math.random()*30)
   }));
 }
+function reshufflePlayground(){
+  pickPlayground();
+  render();
+}
 
 // ---------------- 渲染：主畫面 ----------------
 function render(){
@@ -308,7 +312,7 @@ function render(){
   const gridStart = new Date(y, m, 1 - startOffset);
 
   let cellsHTML = '';
-  for(let i=0;i<42;i++){
+  for(let i=0;i<35;i++){
     const d = new Date(gridStart); d.setDate(gridStart.getDate()+i);
     const inMonth = d.getMonth()===m;
     const key = dateKey(d);
@@ -357,6 +361,10 @@ function render(){
   } else {
     catChipsHTML = '<div style="padding:0 14px 8px;display:flex;gap:6px;overflow-x:auto;"><div class="chip" onclick="openCatManager()">'+icon('paw',12,'#C17B4F')+' 新增一隻喵</div><div class="chip" onclick="openReminderManager()" style="color:#8A7F78;">'+icon('clock',13,'#8A7F78')+' 設定提醒</div></div>';
   }
+  let noMatchNote = '';
+  if(activeCatFilter && !Object.values(stickers).some(s=>s.catId===activeCatFilter)){
+    noMatchNote = '<p style="text-align:center;font-size:11px;color:#8A7F78;margin:-4px 0 8px;">這隻喵還沒有任何記錄，去幫牠拍第一張喵！</p>';
+  }
 
   let playgroundHTML = '';
   if(playgroundPicks.length){
@@ -370,7 +378,7 @@ function render(){
     playgroundHTML = '<div class="card" style="margin:10px 14px 4px;padding:0;height:144px;position:relative;overflow:hidden;background:#EFE6D8;">'
       + '<div style="position:absolute;inset:0;background-image:radial-gradient(#C17B4F18 10px,transparent 11px);background-size:34px 34px;opacity:0.5;"></div>'
       + '<div style="position:absolute;top:6px;left:10px;font-size:10px;color:#8A7F78;">'+icon('paw',11,'#C17B4F')+' 喵的游走樂園</div>'
-      + '<div style="position:absolute;top:4px;right:8px;opacity:0.35;transform:rotate(8deg);">'+icon('spiral',14,'#C17B4F')+'</div>'
+      + '<button onclick="reshufflePlayground()" style="position:absolute;top:5px;right:6px;font-family:inherit;font-size:9px;color:#C17B4F;background:#FDFBF7cc;border:1px dashed #C17B4F70;border-radius:10px;padding:3px 8px;cursor:pointer;">換其他喵玩啦！</button>'
       + items + '</div>';
   } else {
     playgroundHTML = '<div class="card" style="margin:10px 14px 4px;padding:14px;text-align:center;font-size:11px;color:#8A7F78;">未有喵在這裡玩耍，快去拍第一張！</div>';
@@ -402,6 +410,7 @@ function render(){
 
     ${playgroundHTML}
     ${catChipsHTML}
+    ${noMatchNote}
 
     <svg viewBox="0 0 320 14" width="100%" height="14" style="display:block;margin:2px 0 4px;padding:0 14px;">
       <path d="M4 7 Q 20 1, 36 7 T 68 7 T 100 7 T 132 7 T 164 7 T 196 7 T 228 7 T 260 7 T 292 7 T 316 7" stroke="#C17B4F66" stroke-width="1.6" fill="none" stroke-linecap="round"/>
@@ -778,12 +787,12 @@ async function confirmEditor(){
 
 // ---------------- 打卡標籤（選貓咪 + 狀態標籤） ----------------
 function openTagStep(){
-  draftCatId = null;
+  draftCatId = catProfiles.length === 1 ? catProfiles[0].id : null;
   draftTags = [];
   const el = document.getElementById('tagOverlay');
   const catRow = catProfiles.length
     ? '<p style="font-size:12px;color:#8A7F78;margin:0 0 8px;">這是哪隻喵？（可不選）</p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">'
-      + catProfiles.map(c=>'<div class="chip" id="draftcat-'+c.id+'" onclick="selectDraftCat(\''+c.id+'\')" style="border-color:'+c.color+'80;"><span style="width:8px;height:8px;border-radius:50%;background:'+c.color+';display:inline-block;"></span>'+c.name+'</div>').join('')
+      + catProfiles.map(c=>'<div class="chip'+(draftCatId===c.id?' active':'')+'" id="draftcat-'+c.id+'" onclick="selectDraftCat(\''+c.id+'\')" style="'+(draftCatId===c.id?'':'border-color:'+c.color+'80;')+'"><span style="width:8px;height:8px;border-radius:50%;background:'+c.color+';display:inline-block;"></span>'+c.name+'</div>').join('')
       + '</div>'
     : '<p style="font-size:11px;color:#8A7F78;margin:0 0 12px;">還沒有喵檔案，可以先在「'+icon('gear',10,'#8A7F78')+' 管理一下喵」新增。</p>';
   el.innerHTML = `
@@ -977,8 +986,12 @@ function drawPoster(){
   return new Promise(resolve=>{
     const y = currentMonth.getFullYear(), m = currentMonth.getMonth();
     const canvas = document.createElement('canvas');
-    canvas.width = 800; canvas.height = 900;
+    const EXPORT_SCALE = 3; // 畫布用邏輯座標 800x900 繪製，實際輸出放大 3 倍解析度，圖片分享/列印才不會糊
+    canvas.width = 800*EXPORT_SCALE; canvas.height = 900*EXPORT_SCALE;
     const ctx = canvas.getContext('2d');
+    ctx.scale(EXPORT_SCALE, EXPORT_SCALE);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     // 紙感底色 + 細小圓點紋理，跟主頁背景一致
     ctx.fillStyle = '#FDFBF7'; ctx.fillRect(0,0,800,900);
@@ -1015,7 +1028,7 @@ function drawPoster(){
       weekdays.forEach((w,i)=> ctx.fillText(w, startX+cell/2+i*(cell+gapX), startY-14));
 
       const drawTasks = [];
-      for(let i=0;i<42;i++){
+      for(let i=0;i<35;i++){
         const d = new Date(gridStart); d.setDate(gridStart.getDate()+i);
         const inMonth = d.getMonth()===m;
         if(!inMonth) continue;
