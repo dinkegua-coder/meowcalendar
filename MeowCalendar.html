@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>貓咪月歷 Meow Calendar</title>
+<title>喵月曆 Meow Calendar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&family=Gochi+Hand&display=swap" rel="stylesheet">
 <style>
@@ -524,39 +524,33 @@ function loadImageEl(src){
     img.src = src;
   });
 }
-let segCache = null; // 快取上一次的 AI 分割結果，供羽化滑桿即時重算用，不用每次都重跑模型
+let segCache = null; // 快取上一次的 AI 分割原始資料，供邊緣程度滑桿即時重算用，不用每次都重跑模型
 async function removeBackgroundAI(dataUrl){
   const model = await getDeeplabModel();
   const imgEl = await loadImageEl(dataUrl);
   const { legend, segmentationMap, width, height } = await model.segment(imgEl);
+  segCache = { imgEl, segmentationMap, subjectColor: legend['cat'] || legend['dog'] || null, bgColor: legend['background'] || null, width, height };
+  return composeSticker(12); // 預設容許誤差
+}
+// tol：判定「這是不是貓」的顏色容許誤差。數字越小＝判定越嚴格，去背去得越乾淨但可能連毛邊都被切掉；
+// 數字越大＝判定越寬鬆，保留較多邊緣毛髮細節，但背景可能去得不夠乾淨
+function composeSticker(tol){
+  const { imgEl, segmentationMap, subjectColor, bgColor, width, height } = segCache;
+  const matches = (i, color) => Math.abs(segmentationMap[i]-color[0])<=tol && Math.abs(segmentationMap[i+1]-color[1])<=tol && Math.abs(segmentationMap[i+2]-color[2])<=tol;
 
-  const matches = (i, color, tol) => Math.abs(segmentationMap[i]-color[0])<=tol && Math.abs(segmentationMap[i+1]-color[1])<=tol && Math.abs(segmentationMap[i+2]-color[2])<=tol;
-  const subjectColor = legend['cat'] || legend['dog'];
-
-  // 主體遮罩：1 = 貓咪本體
   const mask = new Uint8Array(width*height);
   if(subjectColor){
     for(let p=0, i=0; i<segmentationMap.length; i+=4, p++){
-      mask[p] = matches(i, subjectColor, 12) ? 1 : 0;
+      mask[p] = matches(i, subjectColor) ? 1 : 0;
     }
   } else {
-    const bgColor = legend['background'];
     for(let p=0, i=0; i<segmentationMap.length; i+=4, p++){
-      mask[p] = (bgColor && matches(i, bgColor, 12)) ? 0 : 1;
+      mask[p] = (bgColor && matches(i, bgColor)) ? 0 : 1;
     }
   }
 
-  segCache = { imgEl, mask, width, height };
-  return composeSticker(2); // 預設中等羽化程度
-}
-// featherPx：邊緣柔化程度（0 = 完全銳利的鋸齒邊，數字越大邊緣越柔和/越模糊）
-function composeSticker(featherPx){
-  const { imgEl, mask, width, height } = segCache;
   const borderPx = 7; // 白邊厚度，固定
   const dilated = dilateMask(mask, width, height, borderPx);
-
-  const catAlpha = featherPx>0 ? blurMask(mask, width, height, featherPx) : Float32Array.from(mask, v=>v*255);
-  const ringAlpha = featherPx>0 ? blurMask(dilated, width, height, featherPx) : Float32Array.from(dilated, v=>v*255);
 
   const canvas = document.createElement('canvas');
   canvas.width = width; canvas.height = height;
@@ -566,47 +560,16 @@ function composeSticker(featherPx){
   const data = imageData.data;
 
   for(let p=0, i=0; p<mask.length; p++, i+=4){
-    const catA = catAlpha[p]/255;   // 這個像素有多「貓」（1=完全是貓，0=完全不是）
-    const ringA = ringAlpha[p]/255; // 這個像素整體有多不透明（貓+白邊一起算）
-    data[i]   = data[i]*catA   + 255*(1-catA);
-    data[i+1] = data[i+1]*catA + 255*(1-catA);
-    data[i+2] = data[i+2]*catA + 255*(1-catA);
-    data[i+3] = Math.round(ringA*255);
+    if(mask[p]){
+      data[i+3] = 255;
+    } else if(dilated[p]){
+      data[i] = 255; data[i+1] = 255; data[i+2] = 255; data[i+3] = 255;
+    } else {
+      data[i+3] = 0;
+    }
   }
   ctx.putImageData(imageData, 0, 0);
   return canvas.toDataURL('image/png');
-}
-function blurMask(mask, width, height, radius){
-  const src = Float32Array.from(mask, v=>v*255);
-  const h = boxBlurPass(src, width, height, radius, true);
-  return boxBlurPass(h, width, height, radius, false);
-}
-function boxBlurPass(src, width, height, radius, horizontal){
-  const dst = new Float32Array(width*height);
-  const norm = 1/(radius*2+1);
-  if(horizontal){
-    for(let y=0; y<height; y++){
-      const rowOff = y*width;
-      let sum = 0;
-      for(let k=-radius; k<=radius; k++){ sum += src[rowOff + Math.min(width-1, Math.max(0,k))]; }
-      dst[rowOff] = sum*norm;
-      for(let x=1; x<width; x++){
-        sum += src[rowOff + Math.min(width-1, x+radius)] - src[rowOff + Math.max(0, x-radius-1)];
-        dst[rowOff+x] = sum*norm;
-      }
-    }
-  } else {
-    for(let x=0; x<width; x++){
-      let sum = 0;
-      for(let k=-radius; k<=radius; k++){ sum += src[Math.min(height-1, Math.max(0,k))*width + x]; }
-      dst[x] = sum*norm;
-      for(let y=1; y<height; y++){
-        sum += src[Math.min(height-1, y+radius)*width+x] - src[Math.max(0, y-radius-1)*width+x];
-        dst[y*width+x] = sum*norm;
-      }
-    }
-  }
-  return dst;
 }
 function dilateMask(mask, width, height, radius){
   let current = mask;
@@ -701,13 +664,12 @@ function openEditor(){
       <input type="range" min="0.5" max="2" step="0.05" value="1" oninput="updateEdit('scale', this.value)">
       <label style="font-size:12px;color:#8A7F78;">角度</label>
       <input type="range" min="-45" max="45" step="1" value="0" oninput="updateEdit('rot', this.value)">
-      ${segCache ? '<label style="font-size:12px;color:#8A7F78;">去背柔化程度</label><input type="range" min="0" max="6" step="1" value="2" oninput="updateFeather(this.value)">' : ''}
+      ${segCache ? '<label style="font-size:12px;color:#8A7F78;">去背邊緣程度</label><input type="range" min="4" max="36" step="2" value="12" oninput="updateEdgeTolerance(this.value)">' : ''}
     </div>
     <div style="display:flex;gap:10px;margin-top:14px;">
       <button class="secondary-btn" style="flex:1;" onclick="closeOverlay('editorOverlay'); openSourcePicker(pendingDate);">‹ 重新選擇</button>
       <button class="primary-btn" style="flex:1;" onclick="confirmEditor()">下一步</button>
     </div>
-    <p style="font-size:11px;color:#8A7F78;text-align:center;margin-top:10px;">已用瀏覽器 AI 自動去背，如果邊緣不夠乾淨，正式 App 會用手機的 Vision 框架做得更精細</p>
   `;
   applyEditTransform();
   const img = document.getElementById('editorImg');
@@ -717,7 +679,7 @@ function openEditor(){
   el.classList.add('show');
 }
 function updateEdit(key, val){ editState[key] = parseFloat(val); applyEditTransform(); }
-function updateFeather(val){
+function updateEdgeTolerance(val){
   if(!segCache) return;
   pendingImage = composeSticker(parseInt(val,10));
   const img = document.getElementById('editorImg');
